@@ -11,13 +11,13 @@
     <properties>
         <project.build.jdkVersion>1.7</project.build.jdkVersion>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <netty.version>3.5.5.Final</netty.version>
+        <netty.version>5.0.0.Alpha1</netty.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>io.netty</groupId>
-            <artifactId>netty</artifactId>
+            <artifactId>netty-all</artifactId>
             <version>${netty.version}</version>
         </dependency>
     </dependencies>
