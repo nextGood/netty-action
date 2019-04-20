@@ -1,4 +1,4 @@
-package nio;
+package model;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -10,7 +10,7 @@ import java.util.Date;
 import java.util.concurrent.*;
 
 /**
- * 伪异步I/O
+ * 伪异步I/O Server
  *
  * @author nextGood
  * @date 2019/4/8
@@ -37,6 +37,15 @@ public class TimeServerFake {
             }
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            if (null != server) {
+                System.out.println("The time server close");
+                try {
+                    server.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 

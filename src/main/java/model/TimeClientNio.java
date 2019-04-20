@@ -1,4 +1,4 @@
-package nio;
+package model;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -59,28 +59,29 @@ public class TimeClientNio {
             while (!stop) {
                 try {
                     selector.select(1000);
-                    Set<SelectionKey> selectionKeys = selector.selectedKeys();
-                    Iterator<SelectionKey> iterator = selectionKeys.iterator();
+                    Set<SelectionKey> selectedKeys = selector.selectedKeys();
+                    Iterator<SelectionKey> it = selectedKeys.iterator();
                     SelectionKey key = null;
-                    while (iterator.hasNext()) {
-                        key = iterator.next();
-                        iterator.remove();
+                    while (it.hasNext()) {
+                        key = it.next();
+                        it.remove();
                         try {
                             handleInput(key);
                         } catch (Exception e) {
-                            if (null != key) {
+                            if (key != null) {
                                 key.cancel();
-                                if (null != key.channel()) {
+                                if (key.channel() != null)
                                     key.channel().close();
-                                }
                             }
                         }
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
+                    System.exit(1);
                 }
             }
-            if (null != selector) {
+            // 多路复用器关闭后，所有注册在上面的Channel和Pipe等资源都会被自动去注册并关闭，所以不需要重复释放资源
+            if (selector != null) {
                 try {
                     selector.close();
                 } catch (IOException e) {
@@ -90,36 +91,41 @@ public class TimeClientNio {
         }
 
         private void handleInput(SelectionKey key) throws IOException {
+
             if (key.isValid()) {
-                SocketChannel socketChannel = (SocketChannel) key.channel();
-                if (key.isConnectable() && socketChannel.finishConnect()) {
-                    socketChannel.register(selector, SelectionKey.OP_READ);
-                    // 为什么刚注册了读操作就进行写数据了
-                    doWrite(socketChannel);
-                } else {
-                    System.exit(1);
+                // 判断是否连接成功
+                SocketChannel sc = (SocketChannel) key.channel();
+                if (key.isConnectable()) {
+                    if (sc.finishConnect()) {
+                        sc.register(selector, SelectionKey.OP_READ);
+                        doWrite(sc);
+                    } else {
+                        // 连接失败，进程退出
+                        System.exit(1);
+                    }
                 }
                 if (key.isReadable()) {
-                    ByteBuffer byteBuffer = ByteBuffer.allocate(1000);
-                    int readBytes = socketChannel.read(byteBuffer);
+                    ByteBuffer readBuffer = ByteBuffer.allocate(1024);
+                    int readBytes = sc.read(readBuffer);
                     if (readBytes > 0) {
-                        byteBuffer.flip();
-                        byte[] bytes = new byte[byteBuffer.remaining()];
-                        byteBuffer.get(bytes);
+                        readBuffer.flip();
+                        byte[] bytes = new byte[readBuffer.remaining()];
+                        readBuffer.get(bytes);
                         String body = new String(bytes, "UTF-8");
-                        System.out.println("Now is :" + body);
+                        System.out.println("Now is : " + body);
                         this.stop = true;
                     } else if (readBytes < 0) {
+                        // 对端链路关闭
                         key.cancel();
-                        socketChannel.close();
-                    } else {
-                        System.out.println("读到0字节");
-                    }
+                        sc.close();
+                    } else
+                        ; // 读到0字节，忽略
                 }
             }
         }
 
         private void doConnect() throws IOException {
+            // 如果直接连接成功，则注册到多路复用器上，发送请求消息，读应答
             if (socketChannel.connect(new InetSocketAddress(host, port))) {
                 socketChannel.register(selector, SelectionKey.OP_READ);
                 doWrite(socketChannel);
@@ -128,12 +134,12 @@ public class TimeClientNio {
             }
         }
 
-        private void doWrite(SocketChannel socketChannel) throws IOException {
-            byte[] bytes = "QUERY TIME SERVER".getBytes();
-            ByteBuffer writeBuffer = ByteBuffer.allocate(bytes.length);
-            writeBuffer.put(bytes);
+        private void doWrite(SocketChannel sc) throws IOException {
+            byte[] req = "QUERY TIME ORDER".getBytes();
+            ByteBuffer writeBuffer = ByteBuffer.allocate(req.length);
+            writeBuffer.put(req);
             writeBuffer.flip();
-            socketChannel.write(writeBuffer);
+            sc.write(writeBuffer);
             if (!writeBuffer.hasRemaining()) {
                 System.out.println("Send order 2 server succeed.");
             }

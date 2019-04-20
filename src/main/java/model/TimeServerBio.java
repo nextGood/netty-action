@@ -1,4 +1,4 @@
-package nio;
+package model;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -9,10 +9,12 @@ import java.net.Socket;
 import java.util.Date;
 
 /**
- * 同步阻塞I/O
- * by nextGood 2019/4/7
+ * BIO Server
+ *
+ * @author nextGood
+ * @date 2019/4/7
  */
-public class TimeServer {
+public class TimeServerBio {
 
     public static void main(String[] args) {
         int port = 8080;
@@ -55,7 +57,7 @@ public class TimeServer {
                 while (true) {
                     readLine = in.readLine();
                     if (null == readLine) break;
-                    System.out.println("The time server receive order : " + readLine);
+                    System.out.println("The time server receives order : " + readLine);
                     currentTime = "QUERY TIME ORDER".equalsIgnoreCase(readLine) ? new Date().toString() : "BAD ORDER";
                     out.println(currentTime);
                 }

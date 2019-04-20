@@ -1,4 +1,4 @@
-package nio;
+package model;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -44,7 +44,6 @@ public class TimeServerNio {
                 selector = Selector.open();
                 serverSocketChannel = ServerSocketChannel.open();
                 serverSocketChannel.configureBlocking(false);
-                // 为什么没有设置IP地址？
                 serverSocketChannel.socket().bind(new InetSocketAddress(port), 1024);
                 serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
                 System.out.println("The time server is start in port:" + port);
@@ -63,16 +62,16 @@ public class TimeServerNio {
             while (!stop) {
                 try {
                     selector.select(1000);
-                    Set<SelectionKey> selectionKeys = selector.selectedKeys();
-                    Iterator<SelectionKey> iterator = selectionKeys.iterator();
+                    Set<SelectionKey> selectedKeys = selector.selectedKeys();
+                    Iterator<SelectionKey> it = selectedKeys.iterator();
                     SelectionKey key = null;
-                    while (iterator.hasNext()) {
-                        key = iterator.next();
-                        iterator.remove();
+                    while (it.hasNext()) {
+                        key = it.next();
+                        it.remove();
                         try {
-                            handleKey(key);
+                            handleInput(key);
                         } catch (Exception e) {
-                            if (null != key) {
+                            if (key != null) {
                                 key.cancel();
                                 if (key.channel() != null) {
                                     key.channel().close();
@@ -80,11 +79,13 @@ public class TimeServerNio {
                             }
                         }
                     }
-                } catch (Exception e) {
-                    e.printStackTrace();
+                } catch (Throwable t) {
+                    t.printStackTrace();
                 }
             }
-            if (null != selector) {
+
+            // 多路复用器关闭后，所有注册在上面的Channel和Pipe等资源都会被自动去注册并关闭，所以不需要重复释放资源
+            if (selector != null) {
                 try {
                     selector.close();
                 } catch (IOException e) {
@@ -93,43 +94,49 @@ public class TimeServerNio {
             }
         }
 
-        private void handleKey(SelectionKey key) throws IOException {
+        private void handleInput(SelectionKey key) throws IOException {
+
             if (key.isValid()) {
+                // 处理新接入的请求消息
                 if (key.isAcceptable()) {
+                    // Accept the new connection
                     ServerSocketChannel ssc = (ServerSocketChannel) key.channel();
-                    SocketChannel socketChannel = ssc.accept();
-                    socketChannel.configureBlocking(false);
-                    socketChannel.register(selector, SelectionKey.OP_READ);
+                    SocketChannel sc = ssc.accept();
+                    sc.configureBlocking(false);
+                    // Add the new connection to the selector
+                    sc.register(selector, SelectionKey.OP_READ);
                 }
                 if (key.isReadable()) {
-                    SocketChannel socketChannel = (SocketChannel) key.channel();
-                    ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
-                    int readBytes = socketChannel.read(byteBuffer);
+                    // Read the data
+                    SocketChannel sc = (SocketChannel) key.channel();
+                    ByteBuffer readBuffer = ByteBuffer.allocate(1024);
+                    int readBytes = sc.read(readBuffer);
                     if (readBytes > 0) {
-                        byteBuffer.flip();
-                        byte[] bytes = new byte[byteBuffer.remaining()];
-                        byteBuffer.get(bytes);
+                        readBuffer.flip();
+                        byte[] bytes = new byte[readBuffer.remaining()];
+                        readBuffer.get(bytes);
                         String body = new String(bytes, "UTF-8");
                         System.out.println("The time server receive order : " + body);
-                        String currentTime = "QUERY TIME ORDER".equalsIgnoreCase(body) ? new Date(System.currentTimeMillis()).toString() : "BAD ORDER";
-                        doWrite(socketChannel, currentTime);
+                        String currentTime = "QUERY TIME ORDER".equalsIgnoreCase(body) ? new java.util.Date(System.currentTimeMillis()).toString() : "BAD ORDER";
+                        doWrite(sc, currentTime);
                     } else if (readBytes < 0) {
+                        // 对端链路关闭
                         key.cancel();
-                        socketChannel.close();
+                        sc.close();
                     } else {
-                        System.out.println("读到0字节");
+                        ; // 读到0字节，忽略
                     }
                 }
             }
         }
 
-        private void doWrite(SocketChannel socketChannel, String response) throws IOException {
-            if (null != response && response.trim().length() > 0) {
+        private void doWrite(SocketChannel channel, String response) throws IOException {
+            if (response != null && response.trim().length() > 0) {
                 byte[] bytes = response.getBytes();
                 ByteBuffer writeBuffer = ByteBuffer.allocate(bytes.length);
                 writeBuffer.put(bytes);
                 writeBuffer.flip();
-                socketChannel.write(writeBuffer);
+                channel.write(writeBuffer);
             }
         }
     }

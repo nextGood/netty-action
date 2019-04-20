@@ -1,4 +1,4 @@
-package nio;
+package model;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;

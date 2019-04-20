@@ -1,4 +1,4 @@
-package nio;
+package model;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -7,10 +7,12 @@ import java.io.PrintWriter;
 import java.net.Socket;
 
 /**
- * 同步阻塞I/O
- * by nextGood 2019/4/7
+ * 伪异步I/O Client
+ *
+ * @author nextGood
+ * @date 2019/4/20
  */
-public class TimeClient {
+public class TimeClientFake {
     public static void main(String[] args) {
         int port = 8080;
         try {

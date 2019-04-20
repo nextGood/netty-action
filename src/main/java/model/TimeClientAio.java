@@ -1,4 +1,4 @@
-package nio;
+package model;
 
 /**
  * AIO Client
