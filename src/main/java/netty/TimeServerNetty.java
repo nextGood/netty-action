@@ -1,4 +1,4 @@
-package model;
+package netty;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
@@ -31,12 +31,20 @@ public class TimeServerNetty {
     }
 
     private void bind(int port) {
+        // 用于服务端接受客户端连接的Reactor线程组
         EventLoopGroup bossGroup = new NioEventLoopGroup();
+        // 用于进行SocketChannel网络读写的Reactor线程组
         EventLoopGroup workGroup = new NioEventLoopGroup();
+        // Netty用于启动NIO服务端的辅助启动类
         ServerBootstrap bootstrap = new ServerBootstrap();
         try {
-            bootstrap.group(bossGroup, workGroup).channel(NioServerSocketChannel.class).option(ChannelOption.SO_BACKLOG, 1024).childHandler(new ChildChannelHandle());
+            bootstrap.group(bossGroup, workGroup)
+                    .channel(NioServerSocketChannel.class)
+                    .option(ChannelOption.SO_BACKLOG, 1024)
+                    .childHandler(new ChildChannelHandle());
+            // 同步阻塞等待绑定操作完成
             ChannelFuture future = bootstrap.bind(port).sync();
+            // 同步阻塞等待服务端链路关闭
             future.channel().closeFuture().sync();
         } catch (Exception e) {
             e.printStackTrace();
@@ -63,11 +71,13 @@ public class TimeServerNetty {
             System.out.println("The time server receive order : " + body);
             String currentTime = "QUERY TIME ORDER".equalsIgnoreCase(body) ? new Date(System.currentTimeMillis()).toString() : "BAD ORDER";
             ByteBuf resp = Unpooled.copiedBuffer(currentTime.getBytes());
+            // 将待发送的消息放到消息发送队列中
             ctx.write(resp);
         }
 
         @Override
         public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
+            // 将消息发送队列中的消息写入到SocketChannel中发送给对方
             ctx.flush();
         }
 

@@ -1,4 +1,4 @@
-package model;
+package netty;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
@@ -29,16 +29,23 @@ public class TimeClientNetty {
     }
 
     private void connect(String host, int port) {
+        // 创建客户端处理I/O读写的Group线程组
         EventLoopGroup group = new NioEventLoopGroup();
+        // 创建客户端辅助启动类
         Bootstrap bootstrap = new Bootstrap();
         try {
-            bootstrap.group(group).channel(NioSocketChannel.class).option(ChannelOption.TCP_NODELAY, true).handler(new ChannelInitializer<SocketChannel>() {
-                @Override
-                public void initChannel(SocketChannel socketChannel) throws Exception {
-                    socketChannel.pipeline().addLast(new TimeServerHandle());
-                }
-            });
+            bootstrap.group(group)
+                    .channel(NioSocketChannel.class)
+                    .option(ChannelOption.TCP_NODELAY, true)
+                    .handler(new ChannelInitializer<SocketChannel>() {
+                        @Override
+                        public void initChannel(SocketChannel socketChannel) throws Exception {
+                            socketChannel.pipeline().addLast(new TimeServerHandle());
+                        }
+                    });
+            // 发起异步连接，同步等待连接成功
             ChannelFuture future = bootstrap.connect(host, port).sync();
+            // 发起异步关闭客户端链路，同步等待链路关闭成功
             future.channel().closeFuture().sync();
         } catch (Exception e) {
             e.printStackTrace();
@@ -58,11 +65,13 @@ public class TimeClientNetty {
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
+            // 当客户端和服务端TCP链路建立成功之后，Netty的NIO线程会调用channelActive方法，发送指令给服务端
             ctx.writeAndFlush(byteBuf);
         }
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+            // 当服务端返回应答消息时，channelRead会被调用
             ByteBuf byteBuf = (ByteBuf) msg;
             byte[] resp = new byte[byteBuf.readableBytes()];
             byteBuf.readBytes(resp);
