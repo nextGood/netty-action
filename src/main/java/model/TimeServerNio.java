@@ -7,7 +7,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -32,9 +31,6 @@ public class TimeServerNio {
     }
 
     private static class MultiplexerTimeServer implements Runnable {
-        /**
-         * 设置为全局变量好吗？
-         */
         private Selector selector;
         private ServerSocketChannel serverSocketChannel;
         private volatile boolean stop;
@@ -64,9 +60,8 @@ public class TimeServerNio {
                     selector.select(1000);
                     Set<SelectionKey> selectedKeys = selector.selectedKeys();
                     Iterator<SelectionKey> it = selectedKeys.iterator();
-                    SelectionKey key = null;
                     while (it.hasNext()) {
-                        key = it.next();
+                        SelectionKey key = it.next();
                         it.remove();
                         try {
                             handleInput(key);

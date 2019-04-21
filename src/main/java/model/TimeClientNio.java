@@ -61,17 +61,17 @@ public class TimeClientNio {
                     selector.select(1000);
                     Set<SelectionKey> selectedKeys = selector.selectedKeys();
                     Iterator<SelectionKey> it = selectedKeys.iterator();
-                    SelectionKey key = null;
                     while (it.hasNext()) {
-                        key = it.next();
+                        SelectionKey key = it.next();
                         it.remove();
                         try {
                             handleInput(key);
                         } catch (Exception e) {
                             if (key != null) {
                                 key.cancel();
-                                if (key.channel() != null)
+                                if (key.channel() != null) {
                                     key.channel().close();
+                                }
                             }
                         }
                     }
@@ -91,7 +91,6 @@ public class TimeClientNio {
         }
 
         private void handleInput(SelectionKey key) throws IOException {
-
             if (key.isValid()) {
                 // 判断是否连接成功
                 SocketChannel sc = (SocketChannel) key.channel();
@@ -118,8 +117,9 @@ public class TimeClientNio {
                         // 对端链路关闭
                         key.cancel();
                         sc.close();
-                    } else
+                    } else {
                         ; // 读到0字节，忽略
+                    }
                 }
             }
         }
