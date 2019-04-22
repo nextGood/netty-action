@@ -14,7 +14,7 @@ import io.netty.channel.socket.nio.NioSocketChannel;
  * @author nextGood
  * @date 2019/4/15
  */
-public class TimeClientNetty {
+public class TimeClient {
     public static void main(String[] args) {
         int port = 8080;
         try {
@@ -25,7 +25,7 @@ public class TimeClientNetty {
             e.printStackTrace();
             System.exit(0);
         }
-        new TimeClientNetty().connect("127.0.0.1", port);
+        new TimeClient().connect("127.0.0.1", port);
     }
 
     private void connect(String host, int port) {

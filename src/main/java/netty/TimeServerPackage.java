@@ -7,16 +7,18 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.LineBasedFrameDecoder;
+import io.netty.handler.codec.string.StringDecoder;
 
 import java.util.Date;
 
 /**
- * Netty Server
+ * 支持TCP粘包的Netty Server
  *
  * @author nextGood
- * @date 2019/4/15
+ * @date 2019/4/22
  */
-public class TimeServerNetty {
+public class TimeServerPackage {
     public static void main(String[] args) {
         int port = 8080;
         try {
@@ -27,7 +29,7 @@ public class TimeServerNetty {
             e.printStackTrace();
             System.exit(0);
         }
-        new TimeServerNetty().bind(port);
+        new TimeServerPackage().bind(port);
     }
 
     private void bind(int port) {
@@ -57,19 +59,22 @@ public class TimeServerNetty {
     private class ChildChannelHandle extends ChannelInitializer<SocketChannel> {
         @Override
         protected void initChannel(SocketChannel socketChannel) throws Exception {
+            // LineBasedFrameDecoder和StringDecoder组合成按行切换的文本解析器
+            socketChannel.pipeline().addLast(new LineBasedFrameDecoder(1024));
+            socketChannel.pipeline().addLast(new StringDecoder());
             socketChannel.pipeline().addLast(new TimeServerHandle());
         }
     }
 
     private class TimeServerHandle extends ChannelHandlerAdapter {
+        private int counter;
+
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-            ByteBuf byteBuf = (ByteBuf) msg;
-            byte[] bytes = new byte[byteBuf.readableBytes()];
-            byteBuf.readBytes(bytes);
-            String body = new String(bytes, "UTF-8");
-            System.out.println("The time server receive order : " + body);
+            String body = (String) msg;
+            System.out.println("The time server receive order : " + body + " ; the counter is : " + ++counter);
             String currentTime = "QUERY TIME ORDER".equalsIgnoreCase(body) ? new Date(System.currentTimeMillis()).toString() : "BAD ORDER";
+            currentTime = currentTime + System.getProperty("line.separator");
             ByteBuf resp = Unpooled.copiedBuffer(currentTime.getBytes());
             // 将待发送的消息放到消息发送队列中
             ctx.write(resp);
