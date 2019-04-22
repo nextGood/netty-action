@@ -7,16 +7,16 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.codec.LineBasedFrameDecoder;
+import io.netty.handler.codec.DelimiterBasedFrameDecoder;
 import io.netty.handler.codec.string.StringDecoder;
 
 /**
- * 支持TCP粘包的Netty Client
+ * DelimiterBasedFrameDecoder的Netty Client
  *
  * @author nextGood
  * @date 2019/4/22
  */
-public class TimeClientPacakge {
+public class DelimiterBasedFrameDecoderClient {
     public static void main(String[] args) {
         int port = 8080;
         try {
@@ -27,7 +27,7 @@ public class TimeClientPacakge {
             e.printStackTrace();
             System.exit(0);
         }
-        new TimeClientPacakge().connect("127.0.0.1", port);
+        new DelimiterBasedFrameDecoderClient().connect("127.0.0.1", port);
     }
 
     private void connect(String host, int port) {
@@ -42,10 +42,10 @@ public class TimeClientPacakge {
                     .handler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         public void initChannel(SocketChannel socketChannel) throws Exception {
-                            // LineBasedFrameDecoder和StringDecoder组合成按行切换的文本解析器
-                            socketChannel.pipeline().addLast(new LineBasedFrameDecoder(1024));
+                            ByteBuf byteBuf = Unpooled.copiedBuffer("$_".getBytes());
+                            socketChannel.pipeline().addLast(new DelimiterBasedFrameDecoder(1024, byteBuf));
                             socketChannel.pipeline().addLast(new StringDecoder());
-                            socketChannel.pipeline().addLast(new TimeClientHandle());
+                            socketChannel.pipeline().addLast(new EchoClientHandle());
                         }
                     });
             // 发起异步连接，同步等待连接成功
@@ -59,34 +59,30 @@ public class TimeClientPacakge {
         }
     }
 
-    private class TimeClientHandle extends ChannelHandlerAdapter {
+    private class EchoClientHandle extends ChannelHandlerAdapter {
         private int counter;
-        private byte[] req;
-
-        public TimeClientHandle() {
-            req = ("QUERY TIME ORDER" + System.getProperty("line.separator")).getBytes();
-        }
+        static final String ECHO_REQ = "Hi,Welcome to Netty.$_";
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
-            // 当客户端和服务端TCP链路建立成功之后，Netty的NIO线程会调用channelActive方法，发送指令给服务端
             for (int i = 0; i < 100; i++) {
-                ByteBuf message = Unpooled.buffer(req.length);
-                message.writeBytes(req);
-                ctx.writeAndFlush(message);
+                ctx.writeAndFlush(Unpooled.copiedBuffer(ECHO_REQ.getBytes()));
             }
         }
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-            // 当服务端返回应答消息时，channelRead会被调用
-            String body = (String) msg;
-            System.out.println("Now is:" + body + " ; the counter is : " + ++counter);
+            System.out.println("This is " + ++counter + " times receive server : [" + msg + "]");
+        }
+
+        @Override
+        public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
+            ctx.flush();
         }
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-            System.out.println("Unexpected exception from downstream : " + cause.getMessage());
+            cause.printStackTrace();
             ctx.close();
         }
     }
