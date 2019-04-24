@@ -20,9 +20,9 @@ public class PersonProtoTest {
         phoneNumberBuilder.setType(PersonProto.Person.PhoneType.HOME);
 
         PersonProto.Person person = personBuilder.build();
-
+        // 将对象编码为二进制字节数组
         byte[] data = person.toByteArray();
-
+        // 将二进制字节数组解码为原始对象
         PersonProto.Person result = PersonProto.Person.parseFrom(data);
         System.out.println(result.getEmail());
     }
