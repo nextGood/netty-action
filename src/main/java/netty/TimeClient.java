@@ -50,6 +50,7 @@ public class TimeClient {
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
+            // 优雅退出，释放 NIO 线程组资源
             group.shutdownGracefully();
         }
     }

@@ -42,13 +42,14 @@ public class TimeServer {
                     .channel(NioServerSocketChannel.class)
                     .option(ChannelOption.SO_BACKLOG, 1024)
                     .childHandler(new ChildChannelHandle());
-            // 同步阻塞等待绑定操作完成
+            // 绑定监听端口，同步阻塞等待绑定操作完成
             ChannelFuture future = bootstrap.bind(port).sync();
             // 同步阻塞等待服务端链路关闭
             future.channel().closeFuture().sync();
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
+            // 优雅退出，释放 NIO 线程组资源
             bossGroup.shutdownGracefully();
             workGroup.shutdownGracefully();
         }
@@ -65,7 +66,9 @@ public class TimeServer {
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
             ByteBuf byteBuf = (ByteBuf) msg;
+            // 获取缓冲区中可读字节数
             byte[] bytes = new byte[byteBuf.readableBytes()];
+            // 将缓冲区中的字节数组复制到新建的byte数组中
             byteBuf.readBytes(bytes);
             String body = new String(bytes, "UTF-8");
             System.out.println("The time server receive order : " + body);
