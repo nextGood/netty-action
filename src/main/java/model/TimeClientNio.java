@@ -39,9 +39,9 @@ public class TimeClientNio {
             try {
                 this.host = host == null ? "127.0.0.1" : host;
                 this.port = port;
-                selector = Selector.open();
                 socketChannel = SocketChannel.open();
                 socketChannel.configureBlocking(false);
+                selector = Selector.open();
             } catch (Exception e) {
                 e.printStackTrace();
                 System.exit(1);
@@ -94,14 +94,9 @@ public class TimeClientNio {
             if (key.isValid()) {
                 // 判断是否连接成功
                 SocketChannel sc = (SocketChannel) key.channel();
-                if (key.isConnectable()) {
-                    if (sc.finishConnect()) {
-                        sc.register(selector, SelectionKey.OP_READ);
-                        doWrite(sc);
-                    } else {
-                        // 连接失败，进程退出
-                        System.exit(1);
-                    }
+                if (key.isConnectable() && sc.finishConnect()) {
+                    doWrite(sc);
+                    sc.register(selector, SelectionKey.OP_READ);
                 }
                 if (key.isReadable()) {
                     ByteBuffer readBuffer = ByteBuffer.allocate(1024);

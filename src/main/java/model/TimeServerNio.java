@@ -37,10 +37,10 @@ public class TimeServerNio {
 
         MultiplexerTimeServer(int port) {
             try {
-                selector = Selector.open();
                 serverSocketChannel = ServerSocketChannel.open();
                 serverSocketChannel.configureBlocking(false);
                 serverSocketChannel.socket().bind(new InetSocketAddress(port), 1024);
+                selector = Selector.open();
                 serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
                 System.out.println("The time server is start in port:" + port);
             } catch (Exception e) {
@@ -90,7 +90,6 @@ public class TimeServerNio {
         }
 
         private void handleInput(SelectionKey key) throws IOException {
-
             if (key.isValid()) {
                 // 处理新接入的请求消息
                 if (key.isAcceptable()) {
