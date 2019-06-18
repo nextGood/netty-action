@@ -16,7 +16,7 @@ import java.util.Date;
  * @author nextGood
  * @date 2019/4/15
  */
-public class TimeServerPackageError {
+public class TimePackageServerError {
     public static void main(String[] args) {
         int port = 8080;
         try {
@@ -27,7 +27,7 @@ public class TimeServerPackageError {
             e.printStackTrace();
             System.exit(0);
         }
-        new TimeServerPackageError().bind(port);
+        new TimePackageServerError().bind(port);
     }
 
     private void bind(int port) {
